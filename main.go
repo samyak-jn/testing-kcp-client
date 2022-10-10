@@ -6,7 +6,8 @@ import (
 	"fmt"
 	"path/filepath"
 
-	kuberneteskcp "github.com/kcp-dev/client-go/clients/clientset/versioned"
+	kkcp "github.com/kcp-dev/client-go/clients/clientset/versioned"
+	"github.com/kcp-dev/logicalcluster/v2"
 	"github.com/sirupsen/logrus"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/tools/clientcmd"
@@ -29,17 +30,30 @@ func main() {
 		logrus.WithError(err).Fatal("could not get config")
 	}
 
-	clientset, err := kuberneteskcp.NewForConfig(cfg)
+	clientset, err := kkcp.NewForConfig(cfg)
 	if err != nil {
 		panic(err.Error())
 	}
 
-	appsclusterInterface := clientset.AppsV1()
-	statefulappsclusterInterface, err := appsclusterInterface.StatefulSets().List(context.Background(), metav1.ListOptions{})
+	logicalclustername, exists := logicalcluster.ClusterFromContext(context.Background())
+	if exists {
+		fmt.Println(logicalclustername)
+	} else {
+		panic(err.Error())
+	}
 
+	clusterAwareClient, err := clientset.Cluster(logicalclustername).CoreV1().Namespaces().List(context.TODO(), metav1.ListOptions{})
 	if err != nil {
 		panic(err.Error())
 	}
-	fmt.Println(statefulappsclusterInterface)
+	fmt.Println(clusterAwareClient)
+
+	// appsclusterInterface := clientset.AppsV1()
+	// statefulappsclusterInterface, err := appsclusterInterface.StatefulSets().List(context.Background(), metav1.ListOptions{})
+
+	// if err != nil {
+	// 	panic(err.Error())
+	// }
+	// fmt.Println(statefulappsclusterInterface)
 
 }
